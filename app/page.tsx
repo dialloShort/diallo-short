@@ -1,11 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import GeneratorForm from "@/features/prompt-generator/components/GeneratorForm";
 import OutlineReview from "@/features/prompt-generator/components/OutlineReview";
 import { GeneratorInput, Outline, Scene, GeneratedVideo } from "@/features/prompt-generator/types";
-import { saveScript } from "@/shared/hooks/useLocalScripts";
+import { saveScript, saveDraft, deleteDraft, getDraft } from "@/shared/hooks/useLocalScripts";
 
 type Step = "form" | "outline";
 
@@ -14,6 +14,18 @@ export default function Home() {
     const [step, setStep] = useState<Step>("form");
     const [input, setInput] = useState<GeneratorInput | null>(null);
     const [outline, setOutline] = useState<Outline | null>(null);
+    const [draftId, setDraftId] = useState<string | null>(null);
+
+    useEffect(() => {
+        const id = new URLSearchParams(window.location.search).get("draft");
+        if (!id) return;
+        const draft = getDraft(id);
+        if (!draft) return;
+        setInput(draft.input);
+        setOutline(draft.outline);
+        setDraftId(draft.id);
+        setStep("outline");
+    }, []);
 
     async function handleFormSubmit(formInput: GeneratorInput) {
         setInput(formInput);
@@ -24,11 +36,17 @@ export default function Home() {
         });
         const outlineData: Outline = await res.json();
         setOutline(outlineData);
+
+        const id = crypto.randomUUID();
+        setDraftId(id);
+        saveDraft({ id, createdAt: new Date().toISOString(), input: formInput, outline: outlineData });
+
         setStep("outline");
     }
 
     function handleConfirm(finalOutline: Outline, scenes: Scene[]) {
         if (!input) return;
+        if (draftId) deleteDraft(draftId);
         const video: GeneratedVideo = {
             id: crypto.randomUUID(),
             createdAt: new Date().toISOString(),
@@ -46,6 +64,7 @@ export default function Home() {
         setStep("form");
         setInput(null);
         setOutline(null);
+        setDraftId(null);
     }
 
     return (
@@ -108,6 +127,11 @@ export default function Home() {
                         outline={outline}
                         onConfirm={handleConfirm}
                         onBack={() => setStep("form")}
+                        onDraftSave={(updatedOutline) => {
+                            if (draftId && input) {
+                                saveDraft({ id: draftId, createdAt: new Date().toISOString(), input, outline: updatedOutline });
+                            }
+                        }}
                     />
                 )}
 

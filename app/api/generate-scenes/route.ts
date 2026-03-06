@@ -48,7 +48,7 @@ async function generateScene(
 
     const raw = message.content[0].type === "text" ? message.content[0].text : "";
 
-    let parsed: Omit<Scene, "conditions"> & { conditions?: string; actionDesc?: string; cameraMove?: string };
+    let parsed: Partial<Scene>;
     try {
         parsed = JSON.parse(raw);
     } catch {
@@ -63,6 +63,8 @@ async function generateScene(
         conditions: parsed.conditions ?? "",
         promptGemini: parsed.promptGemini ?? "",
         script: parsed.script ?? "",
+        instructionSync: parsed.instructionSync ?? "",
+        sujet: parsed.sujet ?? "",
     };
 }
 

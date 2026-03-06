@@ -3,16 +3,53 @@
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { GeneratedVideo, Scene } from "@/features/prompt-generator/types";
-import { getScript } from "@/shared/hooks/useLocalScripts";
+import { getScript, saveScript } from "@/shared/hooks/useLocalScripts";
 
-function SceneAccordion({ scene }: { scene: Scene }) {
+function SceneAccordion({ scene, identity, onSave }: {
+    scene: Scene;
+    identity: { styleBase: string; characterId: string; settingId: string; voiceId: string; toneOfVoice: string };
+    onSave: (updated: Scene) => void;
+}) {
     const [open, setOpen] = useState(false);
     const [copied, setCopied] = useState(false);
+    const [editing, setEditing] = useState(false);
+    const [draft, setDraft] = useState<Scene>(scene);
+
+    function buildFullTemplate(s: Scene = scene) {
+        return [
+            `1. IDENTITÉ TECHNIQUE`,
+            `STYLE_BASE : ${identity.styleBase}`,
+            `CHARACTER_ID : ${identity.characterId}`,
+            `SETTING_ID : ${identity.settingId}`,
+            `VOICE_ID : ${identity.voiceId}`,
+            ``,
+            `2. SÉQUENCE VIDÉO`,
+            `PROMPT_VISUEL : ${s.promptGemini}`,
+            ``,
+            `3. SÉQUENCE AUDIO`,
+            `TONE_OF_VOICE : ${identity.toneOfVoice}`,
+            `SCRIPT : ${s.script}`,
+            `INSTRUCTION_SYNC : ${s.instructionSync}`,
+            ``,
+            `4. SUJET TRAITÉ`,
+            `SUJET : ${s.sujet}`,
+        ].join("\n");
+    }
 
     async function copy() {
-        await navigator.clipboard.writeText(scene.promptGemini);
+        await navigator.clipboard.writeText(buildFullTemplate());
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
+    }
+
+    function handleSave() {
+        onSave(draft);
+        setEditing(false);
+    }
+
+    function handleCancel() {
+        setDraft(scene);
+        setEditing(false);
     }
 
     return (
@@ -39,36 +76,67 @@ function SceneAccordion({ scene }: { scene: Scene }) {
 
             {open && (
                 <div className="px-5 pb-5 space-y-4 border-t border-[#2a2a32]">
-                    <div className="pt-4">
-                        <div className="flex items-center justify-between mb-2">
-                            <span className="text-xs font-medium uppercase tracking-widest text-[#7a7880]">
-                                Prompt Gemini
-                            </span>
-                            <button
-                                type="button"
-                                onClick={copy}
-                                className={`text-xs font-medium px-3 py-1 rounded transition-colors border ${
-                                    copied
-                                        ? "bg-green-500/20 text-green-400 border-green-500/30"
-                                        : "bg-[#1c1c21] text-[#7a7880] border-[#2a2a32] hover:border-[#4a4850] hover:text-[#f0eee8]"
-                                }`}
-                            >
-                                {copied ? "Copié !" : "Copier"}
-                            </button>
+                    {editing ? (
+                        <div className="pt-4 space-y-3">
+                            <div className="flex items-center justify-between mb-1">
+                                <span className="text-xs font-medium uppercase tracking-widest text-[#e8b84b]">Mode édition</span>
+                                <div className="flex gap-2">
+                                    <button type="button" onClick={handleCancel} className="text-xs text-[#4a4850] hover:text-[#7a7880] transition-colors px-2 py-1">
+                                        Annuler
+                                    </button>
+                                    <button type="button" onClick={handleSave} className="text-xs font-semibold bg-[#e8b84b] hover:bg-[#d4a43a] text-black px-3 py-1 rounded transition-colors">
+                                        Sauvegarder
+                                    </button>
+                                </div>
+                            </div>
+                            {([
+                                { key: "promptGemini", label: "Prompt visuel" },
+                                { key: "script", label: "Script audio" },
+                                { key: "instructionSync", label: "Instruction sync" },
+                                { key: "sujet", label: "Sujet" },
+                                { key: "conditions", label: "Conditions" },
+                            ] as { key: keyof Scene; label: string }[]).map(({ key, label }) => (
+                                <div key={key}>
+                                    <label className="text-xs text-[#7a7880] block mb-1">{label}</label>
+                                    <textarea
+                                        value={String(draft[key])}
+                                        onChange={(e) => setDraft((d) => ({ ...d, [key]: e.target.value }))}
+                                        rows={key === "promptGemini" || key === "script" ? 4 : 2}
+                                        className="w-full bg-[#0c0c0e] border border-[#2a2a32] focus:border-[#e8b84b]/50 rounded-lg px-3 py-2 text-xs text-[#f0eee8] font-mono resize-y outline-none transition-colors"
+                                    />
+                                </div>
+                            ))}
                         </div>
-                        <p className="text-sm text-[#c0beb8] bg-[#0c0c0e] rounded-lg px-4 py-3 leading-relaxed">
-                            {scene.promptGemini}
-                        </p>
-                    </div>
-
-                    <div>
-                        <span className="text-xs font-medium uppercase tracking-widest text-[#7a7880] block mb-2">
-                            Script
-                        </span>
-                        <p className="text-sm text-[#f0eee8] italic leading-relaxed border-l-2 border-[#e8b84b]/40 pl-3">
-                            &ldquo;{scene.script}&rdquo;
-                        </p>
-                    </div>
+                    ) : (
+                        <div className="pt-4">
+                            <div className="flex items-center justify-between mb-2">
+                                <span className="text-xs font-medium uppercase tracking-widest text-[#7a7880]">Template Gemini</span>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={() => { setEditing(true); setDraft(scene); }}
+                                        className="text-xs font-medium px-3 py-1 rounded transition-colors border bg-[#1c1c21] text-[#7a7880] border-[#2a2a32] hover:border-[#4a4850] hover:text-[#f0eee8]"
+                                    >
+                                        Modifier
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={copy}
+                                        className={`text-xs font-medium px-3 py-1 rounded transition-colors border ${
+                                            copied
+                                                ? "bg-green-500/20 text-green-400 border-green-500/30"
+                                                : "bg-[#1c1c21] text-[#7a7880] border-[#2a2a32] hover:border-[#4a4850] hover:text-[#f0eee8]"
+                                        }`}
+                                    >
+                                        {copied ? "Copié !" : "Copier"}
+                                    </button>
+                                </div>
+                            </div>
+                            <pre className="text-xs text-[#c0beb8] bg-[#0c0c0e] rounded-lg px-4 py-4 leading-relaxed whitespace-pre-wrap font-mono">
+                                {buildFullTemplate()}
+                            </pre>
+                        </div>
+                    )}
                 </div>
             )}
         </div>
@@ -88,6 +156,16 @@ export default function ScriptPage() {
             setVideo(found);
         }
     }, [id, router]);
+
+    function handleSaveScene(updated: Scene) {
+        if (!video) return;
+        const newVideo = {
+            ...video,
+            scenes: video.scenes.map((s) => s.numero === updated.numero ? updated : s),
+        };
+        saveScript(newVideo);
+        setVideo(newVideo);
+    }
 
     if (!video) {
         return (
@@ -177,7 +255,7 @@ export default function ScriptPage() {
                         Séquences — cliquer pour ouvrir
                     </h2>
                     {video.scenes.map((scene) => (
-                        <SceneAccordion key={scene.numero} scene={scene} />
+                        <SceneAccordion key={scene.numero} scene={scene} identity={video.identity} onSave={handleSaveScene} />
                     ))}
                 </div>
             </div>

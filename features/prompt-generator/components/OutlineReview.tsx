@@ -1,22 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Outline, Scene } from "@/features/prompt-generator/types";
 
 interface Props {
     outline: Outline;
     onConfirm: (outline: Outline, scenes: Scene[]) => void;
     onBack: () => void;
+    onDraftSave?: (outline: Outline) => void;
 }
 
-export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
+export default function OutlineReview({ outline, onConfirm, onBack, onDraftSave }: Props) {
     const [scenes, setScenes] = useState(outline.scenes);
+    const [identity, setIdentity] = useState(outline.identity);
+    const [noteMusicaleGlobale, setNoteMusicaleGlobale] = useState(outline.noteMusicaleGlobale);
     const [loading, setLoading] = useState(false);
     const [progress, setProgress] = useState(0);
+    const isFirstRender = useRef(true);
 
-    function updateScene(index: number, field: "titre" | "description", value: string) {
+    useEffect(() => {
+        if (isFirstRender.current) { isFirstRender.current = false; return; }
+        if (!onDraftSave) return;
+        const timer = setTimeout(() => {
+            onDraftSave({ ...outline, scenes, identity, noteMusicaleGlobale });
+        }, 800);
+        return () => clearTimeout(timer);
+    }, [scenes, identity, noteMusicaleGlobale]); // eslint-disable-line react-hooks/exhaustive-deps
+
+    function updateScene(index: number, field: "titre" | "description" | "dureeEstimee", value: string) {
         setScenes((prev) =>
-            prev.map((s, i) => (i === index ? { ...s, [field]: value } : s))
+            prev.map((s, i) => (i === index ? { ...s, [field]: field === "dureeEstimee" ? Number(value) : value } : s))
         );
     }
 
@@ -24,7 +37,7 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
         setLoading(true);
         setProgress(0);
         try {
-            const updatedOutline = { ...outline, scenes };
+            const updatedOutline = { ...outline, scenes, identity, noteMusicaleGlobale };
 
             const res = await fetch("/api/generate-scenes", {
                 method: "POST",
@@ -102,14 +115,24 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                     Identité technique
                 </h2>
                 <dl className="space-y-2">
-                    {[
-                        { label: "Personnage", value: outline.identity.characterId },
-                        { label: "Décor", value: outline.identity.settingId },
-                        { label: "Ton", value: outline.identity.toneOfVoice },
-                    ].map(({ label, value }) => (
-                        <div key={label} className="grid grid-cols-[100px_1fr] gap-3 text-sm">
+                    {([
+                        { label: "Style base", field: "styleBase" },
+                        { label: "Personnage", field: "characterId" },
+                        { label: "Décor", field: "settingId" },
+                        { label: "Voix", field: "voiceId" },
+                        { label: "Ton", field: "toneOfVoice" },
+                    ] as { label: string; field: keyof typeof identity }[]).map(({ label, field }) => (
+                        <div key={field} className="grid grid-cols-[100px_1fr] gap-3 text-sm items-center">
                             <dt className="text-[#7a7880]">{label}</dt>
-                            <dd className="text-[#f0eee8]">{value}</dd>
+                            <dd>
+                                <input
+                                    type="text"
+                                    value={identity[field]}
+                                    onChange={(e) => setIdentity((prev) => ({ ...prev, [field]: e.target.value }))}
+                                    disabled={loading}
+                                    className="w-full bg-transparent text-[#f0eee8] text-sm outline-none border-b border-transparent hover:border-[#2a2a32] focus:border-[#e8b84b] transition-colors pb-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                            </dd>
                         </div>
                     ))}
                 </dl>
@@ -126,7 +149,16 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                     </span>{" "}
                     durée totale
                 </span>
-                <span className="text-[#7a7880]">♪ {outline.noteMusicaleGlobale}</span>
+                <span className="text-[#7a7880] flex items-center gap-1">
+                    ♪
+                    <input
+                        type="text"
+                        value={noteMusicaleGlobale}
+                        onChange={(e) => setNoteMusicaleGlobale(e.target.value)}
+                        disabled={loading}
+                        className="bg-transparent text-[#f0eee8] text-sm outline-none border-b border-transparent hover:border-[#2a2a32] focus:border-[#e8b84b] transition-colors pb-0.5 disabled:opacity-50 disabled:cursor-not-allowed min-w-0 w-48"
+                    />
+                </span>
             </div>
 
             {/* Scènes éditables */}
@@ -140,7 +172,17 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                             <span className="text-xs font-bold bg-[#2a2a32] text-[#7a7880] rounded px-2 py-0.5">
                                 {String(scene.numero).padStart(2, "0")}
                             </span>
-                            <span className="text-xs text-[#7a7880]">{scene.dureeEstimee}s</span>
+                            <span className="flex items-center gap-1 text-xs text-[#7a7880]">
+                                <input
+                                    type="number"
+                                    value={scene.dureeEstimee}
+                                    onChange={(e) => updateScene(i, "dureeEstimee", e.target.value)}
+                                    disabled={loading}
+                                    min={1}
+                                    className="w-10 bg-transparent text-[#7a7880] text-xs outline-none border-b border-transparent hover:border-[#2a2a32] focus:border-[#e8b84b] transition-colors text-center disabled:opacity-50 disabled:cursor-not-allowed"
+                                />
+                                s
+                            </span>
                         </div>
 
                         <input

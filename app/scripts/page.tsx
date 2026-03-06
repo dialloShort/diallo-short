@@ -2,16 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { GeneratedVideo } from "@/features/prompt-generator/types";
-import { getAllScripts } from "@/shared/hooks/useLocalScripts";
+import { GeneratedVideo, Draft } from "@/features/prompt-generator/types";
+import { getAllScripts, getAllDrafts, deleteDraft } from "@/shared/hooks/useLocalScripts";
 
 export default function ScriptsPortal() {
     const router = useRouter();
     const [scripts, setScripts] = useState<GeneratedVideo[]>([]);
+    const [drafts, setDrafts] = useState<Draft[]>([]);
 
     useEffect(() => {
         setScripts(getAllScripts());
+        setDrafts(getAllDrafts());
     }, []);
+
+    function handleDeleteDraft(id: string) {
+        deleteDraft(id);
+        setDrafts((prev) => prev.filter((d) => d.id !== id));
+    }
 
     return (
         <main className="min-h-screen bg-[#0c0c0e]">
@@ -38,6 +45,44 @@ export default function ScriptsPortal() {
                     <h1 className="text-3xl font-bold tracking-tight mb-2">Tous les scripts</h1>
                     <p className="text-[#7a7880] text-sm">{scripts.length} script{scripts.length !== 1 ? "s" : ""} généré{scripts.length !== 1 ? "s" : ""}</p>
                 </div>
+
+                {/* Brouillons */}
+                {drafts.length > 0 && (
+                    <div className="mb-10">
+                        <h2 className="text-xs font-medium uppercase tracking-widest text-[#7a7880] mb-3">Brouillons</h2>
+                        <div className="grid gap-2">
+                            {drafts.map((draft) => (
+                                <div
+                                    key={draft.id}
+                                    className="bg-[#1c1a10] border border-[#e8b84b]/20 rounded-xl p-4 flex items-center justify-between gap-4"
+                                >
+                                    <div className="min-w-0">
+                                        <p className="text-sm font-medium text-[#f0eee8] truncate">{draft.input.sujetGeneral}</p>
+                                        <p className="text-xs text-[#7a7880] mt-0.5">
+                                            Structure générée · {draft.outline.scenes.length} scènes · {new Date(draft.createdAt).toLocaleDateString("fr-FR")}
+                                        </p>
+                                    </div>
+                                    <div className="shrink-0 flex items-center gap-2">
+                                        <button
+                                            type="button"
+                                            onClick={() => router.push(`/?draft=${draft.id}`)}
+                                            className="bg-[#e8b84b] hover:bg-[#d4a43a] text-black text-xs font-semibold rounded-lg px-3 py-1.5 transition-colors"
+                                        >
+                                            Continuer →
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleDeleteDraft(draft.id)}
+                                            className="text-xs text-[#4a4850] hover:text-red-400 transition-colors px-2 py-1.5"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
 
                 {scripts.length === 0 ? (
                     <div className="text-center py-24 border border-dashed border-[#2a2a32] rounded-xl">

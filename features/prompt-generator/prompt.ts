@@ -107,11 +107,11 @@ RÈGLE ABSOLUE — ZÉRO HALLUCINATION :
 - Si tu n'as pas l'information, formule différemment sans inventer.
 
 RÈGLES :
-- Le prompt Gemini suit ce format EXACT :
-  "Applique le style [styleBase]. Le personnage [characterId] est dans [settingId]. [conditions]. [actionDesc]. Mouvement de caméra : [cameraMove]."
+- promptGemini = PROMPT_VISUEL uniquement : une phrase dense combinant style + personnage + décor + conditions + action + mouvement caméra. Format : "[styleBase], [characterId], [settingId], [conditions]. [action précise du personnage]. [mouvement caméra]."
 - Le script est en français, calibré pour la durée de la scène (≈ 2,5 mots/seconde).
 - Le personnage est identique visuellement à toutes les autres scènes (CHARACTER_ID immuable).
-- Les conditions météo/lumière servent la narration.
+- instructionSync : instructions de rythme pour le clonage vocal (pauses, accentuation, débit).
+- sujet : résumé du message principal de cette scène en une phrase.
 - Le script est à la première personne, le personnage parle directement à la caméra.
 
 FORMAT DE SORTIE : uniquement un objet JSON valide, sans texte avant ni après.
@@ -120,10 +120,10 @@ FORMAT DE SORTIE : uniquement un objet JSON valide, sans texte avant ni après.
   "numero": number,
   "duree": number,
   "conditions": "string",
-  "actionDesc": "string",
-  "cameraMove": "string",
-  "promptGemini": "string",
-  "script": "string"
+  "promptGemini": "string (PROMPT_VISUEL — phrase dense prête à coller dans Gemini)",
+  "script": "string (texte audio à la 1ère personne)",
+  "instructionSync": "string (rythme, pauses, accentuation pour le clonage vocal)",
+  "sujet": "string (message principal de la scène)"
 }`;
 }
 

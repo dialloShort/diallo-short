@@ -35,8 +35,17 @@ export interface Scene {
     numero: number;
     duree: number;
     conditions: string;
-    promptGemini: string;
-    script: string;
+    promptGemini: string;    // PROMPT_VISUEL — action visuelle de la scène
+    script: string;          // SCRIPT audio
+    instructionSync: string; // rythme, pauses, accentuation
+    sujet: string;           // message principal de la scène
+}
+
+export interface Draft {
+    id: string;
+    createdAt: string;
+    input: GeneratorInput;
+    outline: Outline;
 }
 
 export interface GeneratedVideo {
