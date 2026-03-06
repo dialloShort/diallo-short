@@ -17,7 +17,9 @@ CONTRAINTES :
 - Durée totale : entre 55 et 70 secondes.
 - Chaque scène dure entre 5 et 10 secondes.
 - Tu choisis librement le nombre de scènes (7 à 12 selon le sujet).
-- Le narrateur est le personnage à l'écran, il parle directement à la caméra.
+- Le personnage est à l'écran, il parle DIRECTEMENT à la caméra pendant TOUTE la vidéo.
+- Il raconte une histoire avec un début, un développement et une chute/révélation finale.
+- Chaque scène = une étape narrative précise de cette histoire. Le personnage parle à chaque scène.
 - Tout est en français.
 
 FORMAT DE SORTIE : uniquement un objet JSON valide, sans texte avant ni après.
@@ -36,7 +38,7 @@ FORMAT DE SORTIE : uniquement un objet JSON valide, sans texte avant ni après.
     {
       "numero": number,
       "titre": "string",
-      "description": "string (ce qui se passe visuellement et narrativement)",
+      "description": "string (ce que le personnage raconte dans cette scène + la posture/geste pendant qu'il parle)",
       "dureeEstimee": number
     }
   ]
@@ -107,8 +109,12 @@ RÈGLE ABSOLUE — ZÉRO HALLUCINATION :
 - Si tu n'as pas l'information, formule différemment sans inventer.
 
 RÈGLES :
-- promptGemini = PROMPT_VISUEL uniquement : une phrase dense combinant style + personnage + décor + conditions + action + mouvement caméra. Format : "[styleBase], [characterId], [settingId], [conditions]. [action précise du personnage]. [mouvement caméra]."
+- conditions : ambiance atmosphérique de la scène (lumière, météo, heure).
+- planCamera : type de plan et mouvement caméra (ex. "Gros plan sur le visage, léger zoom avant").
+- actionSpecifique : ce que fait précisément le personnage pendant qu'il parle face caméra (geste, posture, regard — toujours en train de parler).
+- promptGemini = PROMPT_VISUEL assemblé : "[styleBase], [characterId], [settingId], [conditions]. [actionSpecifique]. [planCamera]." — phrase dense prête à coller dans Gemini.
 - Le script est en français, calibré pour la durée de la scène (≈ 2,5 mots/seconde).
+- Le script raconte une HISTOIRE avec une progression narrative — c'est la voix du personnage qui entraîne le spectateur, pas un commentaire visuel.
 - Le personnage est identique visuellement à toutes les autres scènes (CHARACTER_ID immuable).
 - instructionSync : instructions de rythme pour le clonage vocal (pauses, accentuation, débit).
 - sujet : résumé du message principal de cette scène en une phrase.
@@ -119,8 +125,10 @@ FORMAT DE SORTIE : uniquement un objet JSON valide, sans texte avant ni après.
 {
   "numero": number,
   "duree": number,
-  "conditions": "string",
-  "promptGemini": "string (PROMPT_VISUEL — phrase dense prête à coller dans Gemini)",
+  "conditions": "string (ambiance atmosphérique)",
+  "planCamera": "string (type de plan + mouvement caméra)",
+  "actionSpecifique": "string (ce que fait précisément le personnage en parlant)",
+  "promptGemini": "string (PROMPT_VISUEL assemblé — prêt pour Gemini)",
   "script": "string (texte audio à la 1ère personne)",
   "instructionSync": "string (rythme, pauses, accentuation pour le clonage vocal)",
   "sujet": "string (message principal de la scène)"

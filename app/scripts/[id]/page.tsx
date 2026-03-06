@@ -17,22 +17,34 @@ function SceneAccordion({ scene, identity, onSave }: {
 
     function buildFullTemplate(s: Scene = scene) {
         return [
-            `1. IDENTITÉ TECHNIQUE`,
+            `Réalisateur, génère la séquence vidéo pour cet épisode :`,
+            ``,
+            `[MOTEUR DE PRODUCTION VIDÉO - FICHE DE LANCEMENT]`,
+            ``,
+            `1. IDENTITÉ TECHNIQUE (Constantes)`,
+            ``,
             `STYLE_BASE : ${identity.styleBase}`,
             `CHARACTER_ID : ${identity.characterId}`,
             `SETTING_ID : ${identity.settingId}`,
             `VOICE_ID : ${identity.voiceId}`,
             ``,
-            `2. SÉQUENCE VIDÉO`,
+            `2. PARAMÈTRES DE PRODUCTION (Variables)`,
+            ``,
+            `TYPE_PRODUCTION : NARRÉE`,
+            `DURÉE_CIBLE : ${s.duree}s`,
+            `PLAN_CAMÉRA : ${s.planCamera}`,
+            `ACTION_SPECIFIQUE : ${s.actionSpecifique}`,
+            `SUJET : ${s.sujet}`,
+            ``,
+            `3. SÉQUENCE VIDÉO (Calculée)`,
+            ``,
             `PROMPT_VISUEL : ${s.promptGemini}`,
             ``,
-            `3. SÉQUENCE AUDIO`,
-            `TONE_OF_VOICE : ${identity.toneOfVoice}`,
-            `SCRIPT : ${s.script}`,
-            `INSTRUCTION_SYNC : ${s.instructionSync}`,
+            `4. SÉQUENCE AUDIO (Si TYPE_PRODUCTION est "NARRÉE")`,
             ``,
-            `4. SUJET TRAITÉ`,
-            `SUJET : ${s.sujet}`,
+            `SCRIPT : ${s.script}`,
+            `TONE_OF_VOICE : ${identity.toneOfVoice}`,
+            `INSTRUCTION_SYNC : ${s.instructionSync}`,
         ].join("\n");
     }
 
@@ -90,11 +102,13 @@ function SceneAccordion({ scene, identity, onSave }: {
                                 </div>
                             </div>
                             {([
-                                { key: "promptGemini", label: "Prompt visuel" },
+                                { key: "conditions", label: "Conditions" },
+                                { key: "planCamera", label: "Plan caméra" },
+                                { key: "actionSpecifique", label: "Action spécifique" },
+                                { key: "promptGemini", label: "Prompt visuel (assemblé)" },
                                 { key: "script", label: "Script audio" },
                                 { key: "instructionSync", label: "Instruction sync" },
                                 { key: "sujet", label: "Sujet" },
-                                { key: "conditions", label: "Conditions" },
                             ] as { key: keyof Scene; label: string }[]).map(({ key, label }) => (
                                 <div key={key}>
                                     <label className="text-xs text-[#7a7880] block mb-1">{label}</label>

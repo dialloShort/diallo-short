@@ -15,14 +15,18 @@ function mockGenerate(input: GeneratorInput): GeneratedVideo {
         ? input.identity.toneOfVoice
         : "Grave et posé, rythme lent, chaque mot pèse";
 
+    function buildPrompt(conditions: string, action: string, plan: string) {
+        return `${styleBase}, ${characterId}, ${settingId}, ${conditions}. ${action}. ${plan}.`;
+    }
+
     const scenes = [
         {
             numero: 1,
             duree: 8,
-            conditions: "Nuit, lumière chaude et contrastée de la lampe de bureau",
-            actionDesc: "Le personnage regarde la caméra, immobile, puis prend une longue inspiration avant de parler",
-            cameraMove: "Plan fixe, légère mise au point progressive",
-            promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Nuit, lumière chaude et contrastée de la lampe de bureau. Le personnage regarde la caméra, immobile, puis prend une longue inspiration avant de parler. Mouvement de caméra : Plan fixe, légère mise au point progressive.`,
+            conditions: "nuit, lumière chaude et contrastée de la lampe de bureau",
+            planCamera: "plan fixe, légère mise au point progressive",
+            actionSpecifique: "le personnage parle face caméra, regard direct, prend une inspiration avant de commencer",
+            get promptGemini() { return buildPrompt(this.conditions, this.actionSpecifique, this.planCamera); },
             script: "Ce que je vais vous raconter, la plupart des gens ne le savent pas.",
             instructionSync: "Rythme lent, pause après 'raconter', insistance sur 'ne savent pas'",
             sujet: "Accroche mystérieuse pour capter l'attention",
@@ -30,21 +34,21 @@ function mockGenerate(input: GeneratorInput): GeneratedVideo {
         {
             numero: 2,
             duree: 9,
-            conditions: "Même scène, légère fumée atmosphérique en arrière-plan",
-            actionDesc: "Il pose les deux mains à plat sur le bureau et se penche légèrement vers l'avant",
-            cameraMove: "Lent zoom avant sur le visage",
-            promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Même scène, légère fumée atmosphérique en arrière-plan. Il pose les deux mains à plat sur le bureau et se penche légèrement vers l'avant. Mouvement de caméra : Lent zoom avant sur le visage.`,
-            script: "En ${new Date().getFullYear() - 2000} ans d'histoire, il y a une nuit qui a tout changé.",
+            conditions: "même scène, légère fumée atmosphérique en arrière-plan",
+            planCamera: "lent zoom avant sur le visage",
+            actionSpecifique: "il se penche légèrement vers l'avant, pose les mains sur le bureau, parle avec gravité",
+            get promptGemini() { return buildPrompt(this.conditions, this.actionSpecifique, this.planCamera); },
+            script: "Il y a une nuit qui a tout changé. Une nuit que personne n'a voulu raconter.",
             instructionSync: "Débit posé, accent sur 'tout changé', légère montée en fin de phrase",
             sujet: "Introduction du fait historique central",
         },
         {
             numero: 3,
             duree: 7,
-            conditions: "Lumière qui vacille légèrement, ambiance plus sombre",
-            actionDesc: "Il se redresse, croise les bras, regard direct à la caméra",
-            cameraMove: "Plan américain, caméra légèrement en contre-plongée",
-            promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Lumière qui vacille légèrement, ambiance plus sombre. Il se redresse, croise les bras, regard direct à la caméra. Mouvement de caméra : Plan américain, caméra légèrement en contre-plongée.`,
+            conditions: "lumière qui vacille légèrement, ambiance plus sombre",
+            planCamera: "plan américain, caméra légèrement en contre-plongée",
+            actionSpecifique: "il se redresse, croise les bras, regard direct et soutenu à la caméra",
+            get promptGemini() { return buildPrompt(this.conditions, this.actionSpecifique, this.planCamera); },
             script: "Les hommes de pouvoir pensaient avoir tout prévu. Ils avaient tort.",
             instructionSync: "Ton ferme, pause marquée après 'prévu', 'Ils avaient tort' dit avec conviction",
             sujet: "Révélation de l'échec des élites",

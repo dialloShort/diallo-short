@@ -61,6 +61,8 @@ async function generateScene(
         numero: parsed.numero ?? sceneOutline.numero,
         duree: parsed.duree ?? sceneOutline.dureeEstimee,
         conditions: parsed.conditions ?? "",
+        planCamera: parsed.planCamera ?? "",
+        actionSpecifique: parsed.actionSpecifique ?? "",
         promptGemini: parsed.promptGemini ?? "",
         script: parsed.script ?? "",
         instructionSync: parsed.instructionSync ?? "",

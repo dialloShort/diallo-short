@@ -35,10 +35,12 @@ export interface Scene {
     numero: number;
     duree: number;
     conditions: string;
-    promptGemini: string;    // PROMPT_VISUEL — action visuelle de la scène
-    script: string;          // SCRIPT audio
-    instructionSync: string; // rythme, pauses, accentuation
-    sujet: string;           // message principal de la scène
+    planCamera: string;       // ex. "Gros plan sur le visage"
+    actionSpecifique: string; // ce que fait le personnage précisément pendant qu'il parle
+    promptGemini: string;     // PROMPT_VISUEL assemblé — prêt pour Gemini
+    script: string;           // SCRIPT audio
+    instructionSync: string;  // rythme, pauses, accentuation
+    sujet: string;            // message principal de la scène
 }
 
 export interface Draft {
