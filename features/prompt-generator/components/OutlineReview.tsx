@@ -12,6 +12,7 @@ interface Props {
 export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
     const [scenes, setScenes] = useState(outline.scenes);
     const [loading, setLoading] = useState(false);
+    const [progress, setProgress] = useState(0);
 
     function updateScene(index: number, field: "titre" | "description", value: string) {
         setScenes((prev) =>
@@ -21,6 +22,7 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
 
     async function handleConfirm() {
         setLoading(true);
+        setProgress(0);
         const updatedOutline = { ...outline, scenes };
 
         const res = await fetch("/api/generate-scenes", {
@@ -46,6 +48,7 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                 const msg = JSON.parse(line);
                 if (msg.type === "scene") {
                     generatedScenes.push(msg.data);
+                    setProgress(generatedScenes.length);
                 } else if (msg.type === "done") {
                     onConfirm(updatedOutline, generatedScenes);
                     return;
@@ -68,7 +71,8 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                 <button
                     type="button"
                     onClick={onBack}
-                    className="shrink-0 bg-[#141417] hover:bg-[#1c1c21] border border-[#2a2a32] text-[#7a7880] hover:text-[#f0eee8] text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
+                    disabled={loading}
+                    className="shrink-0 bg-[#141417] hover:bg-[#1c1c21] border border-[#2a2a32] text-[#7a7880] hover:text-[#f0eee8] text-sm font-medium rounded-lg px-4 py-2.5 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     ← Retour
                 </button>
@@ -125,34 +129,62 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
                             type="text"
                             value={scene.titre}
                             onChange={(e) => updateScene(i, "titre", e.target.value)}
-                            className="w-full bg-transparent text-[#f0eee8] font-semibold text-sm outline-none border-b border-transparent hover:border-[#2a2a32] focus:border-[#e8b84b] transition-colors pb-1"
+                            disabled={loading}
+                            className="w-full bg-transparent text-[#f0eee8] font-semibold text-sm outline-none border-b border-transparent hover:border-[#2a2a32] focus:border-[#e8b84b] transition-colors pb-1 disabled:opacity-50 disabled:cursor-not-allowed"
                         />
 
                         <textarea
                             value={scene.description}
                             onChange={(e) => updateScene(i, "description", e.target.value)}
                             rows={2}
-                            className="w-full bg-[#0c0c0e] border border-[#2a2a32] rounded-lg px-3 py-2 text-sm text-[#c0beb8] placeholder-[#3a3840] outline-none focus:border-[#e8b84b] transition-colors resize-none"
+                            disabled={loading}
+                            className="w-full bg-[#0c0c0e] border border-[#2a2a32] rounded-lg px-3 py-2 text-sm text-[#c0beb8] placeholder-[#3a3840] outline-none focus:border-[#e8b84b] transition-colors resize-none disabled:opacity-50 disabled:cursor-not-allowed"
                         />
                     </div>
                 ))}
             </div>
 
-            <button
-                type="button"
-                onClick={handleConfirm}
-                disabled={loading}
-                className="w-full bg-[#e8b84b] hover:bg-[#d4a43a] disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-lg px-6 py-3.5 transition-colors text-sm"
-            >
-                {loading ? (
-                    <span className="flex items-center justify-center gap-2">
-                        <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
-                        Génération des prompts...
-                    </span>
-                ) : (
-                    "Générer les prompts Gemini →"
+            <div className="space-y-3">
+                {loading && (
+                    <div className="space-y-2">
+                        <div className="flex items-center justify-between text-xs text-[#7a7880]">
+                            <span>Génération des scènes…</span>
+                            <span className="text-[#e8b84b] font-medium">{progress} / {scenes.length}</span>
+                        </div>
+                        <div className="w-full bg-[#2a2a32] rounded-full h-1.5 overflow-hidden">
+                            <div
+                                className="h-full bg-[#e8b84b] rounded-full transition-all duration-500"
+                                style={{ width: `${(progress / scenes.length) * 100}%` }}
+                            />
+                        </div>
+                        <div className="flex gap-1">
+                            {scenes.map((_, i) => (
+                                <div
+                                    key={i}
+                                    className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
+                                        i < progress ? "bg-[#e8b84b]" : "bg-[#2a2a32]"
+                                    }`}
+                                />
+                            ))}
+                        </div>
+                    </div>
                 )}
-            </button>
+                <button
+                    type="button"
+                    onClick={handleConfirm}
+                    disabled={loading}
+                    className="w-full bg-[#e8b84b] hover:bg-[#d4a43a] disabled:opacity-50 disabled:cursor-not-allowed text-black font-semibold rounded-lg px-6 py-3.5 transition-colors text-sm"
+                >
+                    {loading ? (
+                        <span className="flex items-center justify-center gap-2">
+                            <span className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
+                            Scène {progress + 1} en cours…
+                        </span>
+                    ) : (
+                        "Générer les prompts Gemini →"
+                    )}
+                </button>
+            </div>
         </div>
     );
 }

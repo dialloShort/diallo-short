@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
-import { GeneratorInput } from "@/features/prompt-generator/types";
+import { useRouter } from "next/navigation";
+import { GeneratorInput, GeneratedVideo } from "@/features/prompt-generator/types";
 import { STYLE_BASE_DEFAULT } from "@/features/prompt-generator/prompt";
+import { getAllScripts } from "@/shared/hooks/useLocalScripts";
 
 interface Props {
     onResult: (input: GeneratorInput) => void;
@@ -46,6 +48,7 @@ function Textarea({ ...props }: React.TextareaHTMLAttributes<HTMLTextAreaElement
 }
 
 export default function GeneratorForm({ onResult }: Props) {
+    const router = useRouter();
     const [mode, setMode] = useState<"auto" | "manual">("auto");
     const [identity, setIdentity] = useState(EMPTY_IDENTITY);
     const [sujetGeneral, setSujetGeneral] = useState("");
@@ -53,10 +56,21 @@ export default function GeneratorForm({ onResult }: Props) {
     const [ambiance, setAmbiance] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
+    const [duplicate, setDuplicate] = useState<GeneratedVideo | null>(null);
 
     async function handleSubmit(e: React.FormEvent) {
         e.preventDefault();
         setError("");
+
+        const existing = getAllScripts().find(
+            (s) => s.input.sujetGeneral.trim().toLowerCase() === sujetGeneral.trim().toLowerCase()
+        );
+        if (existing && !duplicate) {
+            setDuplicate(existing);
+            return;
+        }
+
+        setDuplicate(null);
         setLoading(true);
         const input: GeneratorInput = { mode, identity, sujetGeneral, anecdote, ambiance };
         await onResult(input);
@@ -208,6 +222,29 @@ export default function GeneratorForm({ onResult }: Props) {
                 <p className="text-red-400 text-sm bg-red-400/10 border border-red-400/20 rounded-lg px-4 py-3">
                     {error}
                 </p>
+            )}
+
+            {duplicate && (
+                <div className="bg-[#1c1a10] border border-[#e8b84b]/30 rounded-xl px-4 py-4 space-y-3">
+                    <p className="text-sm text-[#e8b84b] font-medium">
+                        Ce sujet a déjà été généré le {new Date(duplicate.createdAt).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" })}.
+                    </p>
+                    <div className="flex gap-3">
+                        <button
+                            type="button"
+                            onClick={() => router.push(`/scripts/${duplicate.id}`)}
+                            className="flex-1 bg-[#e8b84b] hover:bg-[#d4a43a] text-black text-sm font-semibold rounded-lg px-4 py-2.5 transition-colors"
+                        >
+                            Voir le script existant
+                        </button>
+                        <button
+                            type="submit"
+                            className="flex-1 bg-transparent border border-[#2a2a32] hover:border-[#4a4850] text-[#7a7880] hover:text-[#f0eee8] text-sm font-medium rounded-lg px-4 py-2.5 transition-colors"
+                        >
+                            Générer quand même
+                        </button>
+                    </div>
+                </div>
             )}
 
             <button

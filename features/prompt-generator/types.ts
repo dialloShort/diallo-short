@@ -27,6 +27,7 @@ export interface Outline {
     noteMusicaleGlobale: string;
     dureeTotale: number;
     scenes: SceneOutline[];
+    research: string; // faits Tavily — réutilisés dans generate-scenes
 }
 
 // Étape 2 — prompts générés

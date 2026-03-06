@@ -5,7 +5,13 @@ export const STYLE_BASE_DEFAULT =
 
 export function buildOutlineSystemPrompt(): string {
     return `Tu es un réalisateur et scénariste expert en vidéos courtes virales.
-Ta mission : analyser un sujet et concevoir la structure narrative d'une vidéo de 55 à 70 secondes.
+Ta mission : concevoir la structure narrative d'une vidéo de 55 à 70 secondes à partir de faits vérifiés.
+
+RÈGLE ABSOLUE — ZÉRO HALLUCINATION :
+- Tu dois utiliser UNIQUEMENT les faits fournis dans la section RECHERCHE ci-dessous.
+- Tu ne dois JAMAIS inventer de dates, noms, chiffres ou événements.
+- Si une information n'est pas dans la recherche, tu ne l'utilises pas.
+- Les scripts doivent refléter fidèlement les faits sourcés.
 
 CONTRAINTES :
 - Durée totale : entre 55 et 70 secondes.
@@ -52,6 +58,7 @@ export function buildOutlineUserPrompt(params: {
     sujetGeneral: string;
     anecdote?: string;
     ambiance?: string;
+    research?: string;
 }): string {
     const lines: string[] = [];
 
@@ -77,7 +84,13 @@ export function buildOutlineUserPrompt(params: {
         lines.push(`TONE_OF_VOICE : ${params.identity.toneOfVoice}`);
     }
 
-    lines.push("\nGénère la structure narrative.");
+    if (params.research) {
+        lines.push("\n--- RECHERCHE (faits vérifiés — utilise uniquement ceci) ---");
+        lines.push(params.research);
+        lines.push("--- FIN RECHERCHE ---");
+    }
+
+    lines.push("\nGénère la structure narrative en te basant exclusivement sur les faits ci-dessus.");
     return lines.join("\n");
 }
 
@@ -87,6 +100,11 @@ export function buildSceneSystemPrompt(): string {
     return `Tu es un ingénieur de prompt spécialisé dans la production vidéo IA pour Gemini.
 Tu reçois la structure narrative complète d'une vidéo et les scènes déjà générées.
 Tu dois générer le prompt Gemini et le script audio pour UNE scène précise.
+
+RÈGLE ABSOLUE — ZÉRO HALLUCINATION :
+- Utilise UNIQUEMENT les faits fournis dans la section RECHERCHE.
+- Ne complète jamais avec des informations inventées ou supposées.
+- Si tu n'as pas l'information, formule différemment sans inventer.
 
 RÈGLES :
 - Le prompt Gemini suit ce format EXACT :
@@ -119,6 +137,7 @@ export function buildSceneUserPrompt(params: {
     allSceneOutlines: { numero: number; titre: string; description: string; dureeEstimee: number }[];
     previousScenes: { numero: number; promptGemini: string; script: string }[];
     currentScene: { numero: number; titre: string; description: string; dureeEstimee: number };
+    research?: string;
 }): string {
     const lines: string[] = [];
 
@@ -140,6 +159,12 @@ export function buildSceneUserPrompt(params: {
             lines.push(`    Prompt : ${s.promptGemini}`);
             lines.push(`    Script : "${s.script}"`);
         });
+    }
+
+    if (params.research) {
+        lines.push("\n--- RECHERCHE (faits vérifiés — base-toi exclusivement sur ceci) ---");
+        lines.push(params.research);
+        lines.push("--- FIN RECHERCHE ---");
     }
 
     lines.push(`\nGÉNÈRE MAINTENANT : Scène ${params.currentScene.numero} — "${params.currentScene.titre}"`);

@@ -1,60 +1,68 @@
+export const runtime = "edge";
+
 import { NextRequest } from "next/server";
+import Anthropic from "@anthropic-ai/sdk";
 import { Outline, Scene } from "@/features/prompt-generator/types";
+import { buildSceneSystemPrompt, buildSceneUserPrompt } from "@/features/prompt-generator/prompt";
+
+const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 
 interface GenerateScenesRequest {
     outline: Outline;
 }
 
-// TODO: remplacer par l'appel réel à Claude (appel séquentiel scène par scène)
-function mockGenerateScene(
+async function generateScene(
     outline: Outline,
     sceneIndex: number,
-    previousScenes: Scene[]
-): Scene {
+    previousScenes: Scene[],
+    research: string
+): Promise<Scene> {
     const sceneOutline = outline.scenes[sceneIndex];
-    const { identity } = outline;
 
-    const conditions = [
-        "Nuit tombante, lumière chaude de la lampe, ombres marquées sur le visage",
-        "Même ambiance, légère fumée atmosphérique en fond",
-        "Lumière qui se fait plus froide, tension palpable",
-        "Éclairage dramatique, contraste fort entre lumière et ombre",
-        "Retour à la lumière chaude, atmosphère plus intime",
-        "Lumière rasante depuis la gauche, relief du visage accentué",
-        "Fondu progressif vers une lumière plus sombre, fin de séquence",
-    ][sceneIndex % 7];
+    const message = await anthropic.messages.create({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1024,
+        system: buildSceneSystemPrompt(),
+        messages: [
+            {
+                role: "user",
+                content: buildSceneUserPrompt({
+                    identity: {
+                        styleBase: outline.identity.styleBase,
+                        characterId: outline.identity.characterId,
+                        settingId: outline.identity.settingId,
+                        toneOfVoice: outline.identity.toneOfVoice,
+                    },
+                    allSceneOutlines: outline.scenes,
+                    previousScenes: previousScenes.map((s) => ({
+                        numero: s.numero,
+                        promptGemini: s.promptGemini,
+                        script: s.script,
+                    })),
+                    currentScene: sceneOutline,
+                    research,
+                }),
+            },
+        ],
+    });
 
-    const cameraMoves = [
-        "Plan fixe, légère mise au point progressive",
-        "Lent zoom avant sur le visage",
-        "Plan américain, caméra légèrement en contre-plongée",
-        "Très gros plan sur les yeux, puis recul lent",
-        "Plan fixe, épaules et visage",
-        "Léger travelling latéral de gauche à droite",
-        "Zoom arrière très lent, personnage de plus en plus petit dans le cadre",
-    ][sceneIndex % 7];
+    const raw = message.content[0].type === "text" ? message.content[0].text : "";
 
-    const scripts = [
-        "Ce que je vais vous raconter, la plupart des gens l'ignorent complètement.",
-        "Il faut remonter plusieurs siècles en arrière pour comprendre ce qui s'est passé.",
-        "Tout s'est enchaîné en quelques heures. Personne ne l'avait vu venir.",
-        "C'est à ce moment précis que tout a basculé. Sans retour possible.",
-        "Les conséquences ont été immédiates. Et elles durent encore aujourd'hui.",
-        "Ce que l'histoire officielle ne vous dit pas, c'est que cela aurait pu être évité.",
-        "Voilà pourquoi cette histoire mérite d'être racontée. N'oubliez pas.",
-    ][sceneIndex % 7];
-
-    const actionDesc = sceneOutline.description;
-    const promptGemini = `Applique le style ${identity.styleBase}. Le personnage ${identity.characterId} est dans ${identity.settingId}. ${conditions}. ${actionDesc}. Mouvement de caméra : ${cameraMoves}.`;
-
-    void previousScenes;
+    let parsed: Omit<Scene, "conditions"> & { conditions?: string; actionDesc?: string; cameraMove?: string };
+    try {
+        parsed = JSON.parse(raw);
+    } catch {
+        const match = raw.match(/\{[\s\S]*\}/);
+        if (!match) throw new Error(`Parsing failed for scene ${sceneOutline.numero}`);
+        parsed = JSON.parse(match[0]);
+    }
 
     return {
-        numero: sceneOutline.numero,
-        duree: sceneOutline.dureeEstimee,
-        conditions,
-        promptGemini,
-        script: scripts,
+        numero: parsed.numero ?? sceneOutline.numero,
+        duree: parsed.duree ?? sceneOutline.dureeEstimee,
+        conditions: parsed.conditions ?? "",
+        promptGemini: parsed.promptGemini ?? "",
+        script: parsed.script ?? "",
     };
 }
 
@@ -65,21 +73,26 @@ export async function POST(req: NextRequest) {
 
     const stream = new ReadableStream({
         async start(controller) {
-            const generatedScenes: Scene[] = [];
+            try {
+                const generatedScenes: Scene[] = [];
 
-            for (let i = 0; i < outline.scenes.length; i++) {
-                // Simule le temps de génération par Claude (à remplacer par l'appel API réel)
-                await new Promise((resolve) => setTimeout(resolve, 1200));
+                for (let i = 0; i < outline.scenes.length; i++) {
+                    const scene = await generateScene(outline, i, generatedScenes, outline.research);
+                    generatedScenes.push(scene);
 
-                const scene = mockGenerateScene(outline, i, generatedScenes);
-                generatedScenes.push(scene);
+                    const chunk = JSON.stringify({ type: "scene", data: scene }) + "\n";
+                    controller.enqueue(encoder.encode(chunk));
+                }
 
-                const chunk = JSON.stringify({ type: "scene", data: scene }) + "\n";
-                controller.enqueue(encoder.encode(chunk));
+                controller.enqueue(encoder.encode(JSON.stringify({ type: "done" }) + "\n"));
+            } catch (err) {
+                const msg = err instanceof Error ? err.message : "Erreur inconnue";
+                controller.enqueue(
+                    encoder.encode(JSON.stringify({ type: "error", message: msg }) + "\n")
+                );
+            } finally {
+                controller.close();
             }
-
-            controller.enqueue(encoder.encode(JSON.stringify({ type: "done" }) + "\n"));
-            controller.close();
         },
     });
 
