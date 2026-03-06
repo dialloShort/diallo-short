@@ -24,6 +24,8 @@ function mockGenerate(input: GeneratorInput): GeneratedVideo {
             cameraMove: "Plan fixe, légère mise au point progressive",
             promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Nuit, lumière chaude et contrastée de la lampe de bureau. Le personnage regarde la caméra, immobile, puis prend une longue inspiration avant de parler. Mouvement de caméra : Plan fixe, légère mise au point progressive.`,
             script: "Ce que je vais vous raconter, la plupart des gens ne le savent pas.",
+            instructionSync: "Rythme lent, pause après 'raconter', insistance sur 'ne savent pas'",
+            sujet: "Accroche mystérieuse pour capter l'attention",
         },
         {
             numero: 2,
@@ -33,6 +35,8 @@ function mockGenerate(input: GeneratorInput): GeneratedVideo {
             cameraMove: "Lent zoom avant sur le visage",
             promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Même scène, légère fumée atmosphérique en arrière-plan. Il pose les deux mains à plat sur le bureau et se penche légèrement vers l'avant. Mouvement de caméra : Lent zoom avant sur le visage.`,
             script: "En ${new Date().getFullYear() - 2000} ans d'histoire, il y a une nuit qui a tout changé.",
+            instructionSync: "Débit posé, accent sur 'tout changé', légère montée en fin de phrase",
+            sujet: "Introduction du fait historique central",
         },
         {
             numero: 3,
@@ -42,6 +46,8 @@ function mockGenerate(input: GeneratorInput): GeneratedVideo {
             cameraMove: "Plan américain, caméra légèrement en contre-plongée",
             promptGemini: `Applique le style ${styleBase}. Le personnage ${characterId} est dans ${settingId}. Lumière qui vacille légèrement, ambiance plus sombre. Il se redresse, croise les bras, regard direct à la caméra. Mouvement de caméra : Plan américain, caméra légèrement en contre-plongée.`,
             script: "Les hommes de pouvoir pensaient avoir tout prévu. Ils avaient tort.",
+            instructionSync: "Ton ferme, pause marquée après 'prévu', 'Ils avaient tort' dit avec conviction",
+            sujet: "Révélation de l'échec des élites",
         },
     ];
 
