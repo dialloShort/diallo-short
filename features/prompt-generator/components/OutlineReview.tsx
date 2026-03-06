@@ -23,37 +23,55 @@ export default function OutlineReview({ outline, onConfirm, onBack }: Props) {
     async function handleConfirm() {
         setLoading(true);
         setProgress(0);
-        const updatedOutline = { ...outline, scenes };
+        try {
+            const updatedOutline = { ...outline, scenes };
 
-        const res = await fetch("/api/generate-scenes", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ outline: updatedOutline }),
-        });
+            const res = await fetch("/api/generate-scenes", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ outline: updatedOutline }),
+            });
 
-        if (!res.body) return;
+            if (!res.body) return;
 
-        const generatedScenes: Scene[] = [];
-        const reader = res.body.getReader();
-        const decoder = new TextDecoder();
+            const generatedScenes: Scene[] = [];
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
 
-            const text = decoder.decode(value);
-            const lines = text.split("\n").filter(Boolean);
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop() ?? "";
 
-            for (const line of lines) {
-                const msg = JSON.parse(line);
-                if (msg.type === "scene") {
-                    generatedScenes.push(msg.data);
-                    setProgress(generatedScenes.length);
-                } else if (msg.type === "done") {
-                    onConfirm(updatedOutline, generatedScenes);
-                    return;
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    const msg = JSON.parse(line);
+                    if (msg.type === "scene") {
+                        generatedScenes.push(msg.data);
+                        setProgress(generatedScenes.length);
+                    } else if (msg.type === "done") {
+                        onConfirm(updatedOutline, generatedScenes);
+                        return;
+                    } else if (msg.type === "error") {
+                        throw new Error(msg.message);
+                    }
                 }
             }
+
+            // Flush le buffer restant
+            if (buffer.trim()) {
+                const msg = JSON.parse(buffer);
+                if (msg.type === "done") {
+                    onConfirm(updatedOutline, generatedScenes);
+                }
+            }
+        } catch (err) {
+            console.error("Erreur génération:", err);
+            setLoading(false);
         }
     }
 
